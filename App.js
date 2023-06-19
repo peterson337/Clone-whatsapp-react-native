@@ -14,7 +14,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, AntDesign } from '@expo/vector-icons';
 
 import {db} from "./Firebase";
 
@@ -23,11 +23,8 @@ import {
   onSnapshot
   } from "firebase/firestore";
 
-
-
-
 function HomeScreen({route, navigation}) {
-        const [name, setName] = useState('');
+        const [name, setName] = useState('Nome de teste');
         const [definedName, setDefinedName] = useState(false);
         
   return (
@@ -37,7 +34,12 @@ function HomeScreen({route, navigation}) {
       {
       !definedName?(
         <View
-        style={styles.subContainer}>
+        style={{...styles.subContainer, textAlign: 'center',                    
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        backgroundColor: 'rgb(30,30,30)',
+        borderBottomWidth: 0,
+         }}>
 
         <Text
         style={styles.Text}
@@ -48,6 +50,7 @@ function HomeScreen({route, navigation}) {
          <View style={styles.divInput}>
          <TextInput
         onChangeText={(text) =>setName(text)}
+        value={name}
   
         style={styles.TextInput}
         placeholder={'Escreva o seu nome'}
@@ -69,7 +72,13 @@ function HomeScreen({route, navigation}) {
       </View>
     )   : (
       <View 
-      style={styles.subContainer}>
+      style={{...styles.subContainer, textAlign: 'center',                    
+        justifyContent: 'center', 
+        alignItems: 'center',
+        backgroundColor: 'rgb(30,30,30)',
+        borderBottomWidth: 0,
+
+         }}>
       <Text
       style={styles.Text}
       >
@@ -99,24 +108,22 @@ function ChatScreen({route, navigation}) {
       const [name, setName] = useState('');
 
       
-      useFocusEffect(
-        React.useCallback(() => {
-          if (route.params && route.params.userName != undefined) {
-            if (name == "") {
-              alert("Seja bem-vindo ao chat: " + route.params.userName); 
-              setName(route.params.userName);
-              /* console.log('O seu id é' + route.params.userId) */
-            }
-
-          } else {
-               navigation.navigate('Home');
+     useEffect(() => {
+        if (route.params && route.params.userName) {
+          if (name === "") {
+            alert("Seja bem-vindo ao chat: " + route.params.userName);
           }
-        }, [route.params])
-      );
+          setName(route.params.userName);
+          // console.log('O seu id é' + route.params.userId)
+        } else {
+          navigation.navigate('Home');
+        }
+      }, [route.params]);
+
       
       useEffect(() => {
         const unsubscribe = onSnapshot(collection(db, 'rooms'), (snapshot) => {
-          setName(route.params.userName);
+          setName(route.params?.userName);
           setRooms(
             snapshot.docs.map((doc) => ({
               id: doc.id,
@@ -154,17 +161,21 @@ function ChatScreen({route, navigation}) {
 
       </View>
         {
-          rooms.map((val) => {
+          rooms.map((val, index) => {
             return(
               <View 
-              key={val.id}
+              key={val.id} 
               style={{...styles.chat,
-                        borderBottomColor: 'rgba(255, 255, 255,0.4)',
+              borderBottomColor: 'rgba(255, 255, 255,0.4)',
 
               }}
               >
                 <TouchableOpacity
-                   onPress={() => navigation.navigate('Room', {chatName: val.id})}
+                   onPress={() => navigation.navigate('Room', {
+                    chatName: val.id, 
+                    autor: name,
+                    id: route.params.userId, 
+                  })}
                    
 
                 ><Text
@@ -205,18 +216,104 @@ function ChatScreen({route, navigation}) {
 const RoomScreen = ({route, navigation}) => {
       const [messages, setMessages] = useState([]);
       const [currentmessages, setCurrentMessages] = useState('');
+      const [usuario, setUsuario] = useState('');
+
       const ScrollViewRef = useRef();
 
+      useEffect(() => {
+        setUsuario(route.params?.autor)
+      for (let i = 0; i < 100; i++) {
+//?             O CONCAT SERVE PARA RETORNAR O QUE FOI PASSADO.         
+        setMessages(messages => messages.concat({
+          data: {
+            autor: usuario,
+            mensagem: 'Ola, mundo'
+          }
+        }))
+        
+      }
+      }, [])
+      
+        const sendMessage = () => {
+          alert(usuario +    route.params.id) 
+        }
       return(
         <View
          style={styles.container}>
           <ScrollView
           ref={ScrollViewRef}
-          onContentSizeChange={() => ScrollViewRef.current.scrollToEnd({animated: true})}
+          onContentSizeChange={() => ScrollViewRef.
+          current.scrollToEnd({animated: true})}
+          
           style={{flex: 0.8}}
           >
-            <Text>Estou na sala individual</Text>
+              { 
+              messages.map((val, index) => {
+                return(
+                  <View
+                  style={styles.subContainer}
+                  key={index}
+  
+                  >
+                    <Text
+                    style={{...styles.Text, 
+                      margin: 0,
+                        }}
+                    >{usuario}:</Text> 
+                    <Text
+                      style={{...styles.Text, 
+                        margin: 0,
+                        color: 'rgb(210,210,210)',
+                        fontWeight: 'bold'
+                          }}
+                    >{val.data.mensagem}.</Text> 
+  
+                  </View>
+                )
+              })
+              }
           </ScrollView>
+
+          <View
+          style={{...styles.container,
+                  alignItems:'flex-end',
+                  flex:0.2,
+                  justifyContent:'flex-end',
+                  flexDirection:'row'}}
+          > 
+
+          <TextInput 
+          onChangeText={(text) =>setCurrentMessages(text)}
+          style={{...styles.TextInput,
+                      width:'90%',
+                      height:40,
+                      paddingLeft:10,
+                      backgroundColor:'white',
+                      margin: 0,
+                      marginBottom: 0,
+
+                     }}
+          ></TextInput>
+
+          <TouchableOpacity
+          style={{...styles.TouchableOpacity,
+                              width:'10%',
+                              alignItems:'center',
+                              padding: 0,
+                              marginHorizontal: 0,
+                              borderRadius: 20,
+                             backgroundColor: 'rgb(30,30,30)',
+
+          }}
+          onPress={sendMessage}
+
+          >
+              <AntDesign name="dingding" size={24} color="rgb(52, 119, 235)" />
+              
+          </TouchableOpacity>
+
+          </View>
+
         </View>
       )
 
@@ -226,8 +323,10 @@ const RoomScreen = ({route, navigation}) => {
 const HomeStack = createNativeStackNavigator();
 const ChatStack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
 
-const ChatStackScreen = () => {
+
+/* const ChatStackScreen = () => {
        return(
         
           <ChatStack.Navigator>
@@ -236,7 +335,7 @@ const ChatStackScreen = () => {
           </ChatStack.Navigator>
         
        )
-}
+} */
 
 const MyTheme = {
 
@@ -260,7 +359,7 @@ const MyTheme = {
 export default function App() {
   return (
     <NavigationContainer theme={MyTheme}>
-   <Tab.Navigator 
+   <Stack.Navigator 
     screenOptions={({ route }) => ({
     /* lazy: false, */
     tabBarIcon: ({ focused, color, size }) => {
@@ -290,8 +389,10 @@ export default function App() {
 >
   <Tab.Screen name="Home" component={HomeScreen}/>
   <Tab.Screen name="Salas" component={ChatScreen} />
-  {/* <Tab.Screen name="Settings" component={SettingsScreen} /> */}
-</Tab.Navigator>
+  <Tab.Screen name="Room" component={RoomScreen} />
+
+
+</Stack.Navigator>
 
 
       <StatusBar hidden/>
@@ -308,6 +409,10 @@ const styles = StyleSheet.create({
   },
 
   subContainer: {
+    backgroundColor: 'rgb(20,20,20)',
+    borderBottomWidth: 1,
+    padding: 10
+
   },
 
   Text: {
