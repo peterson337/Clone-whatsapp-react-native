@@ -1,30 +1,41 @@
-import  React, {useState, useEffect} from 'react';
+import  React, {useState, useEffect, useRef} from 'react';
 import { 
   Text, 
   View, 
   StatusBar, 
   TextInput, 
   StyleSheet, 
-  Button
+  Button,
+  TouchableOpacity,
+  ScrollView,
 } from 'react-native';
-import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, useFocusEffect } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import { Ionicons } from '@expo/vector-icons';
 
+import {db} from "./Firebase";
+
+import {
+  collection, 
+  onSnapshot
+  } from "firebase/firestore";
+
+
 
 
 function HomeScreen({route, navigation}) {
         const [name, setName] = useState('');
         const [definedName, setDefinedName] = useState(false);
-
-
+        
   return (
-    <View style={styles.container}>
+    <View style={{...styles.container,
+                    justifyContent: 'center', 
+                    alignItems: 'center', }}>
       {
-      name === ''?(
+      !definedName?(
         <View
         style={styles.subContainer}>
 
@@ -34,25 +45,26 @@ function HomeScreen({route, navigation}) {
         Seja bem-vindo ao chat, por favor escolha um nome 
         </Text>
 
-        <TextInput
-        onChange={(text) =>setName(text)}
+         <View style={styles.divInput}>
+         <TextInput
+        onChangeText={(text) =>setName(text)}
+  
         style={styles.TextInput}
+        placeholder={'Escreva o seu nome'}
         ></TextInput>
+          </View> 
+        
 
-        <View
-        style={styles.Button}
-
-        >
-        <Button
-        title='teste'
-        color={'#069'}
-        onPress={() => setDefinedName(true)}    
-          style={{
-            paddingVertical: 80 
-          }}>
+     
+        <TouchableOpacity
+        onPress={() => setDefinedName(true)}>
+          <Text
+          style={styles.TouchableOpacity}
+          >
+          Trocar o meu nome
+          </Text>
           
-        </Button>
-        </View>
+        </TouchableOpacity>
 
       </View>
     )   : (
@@ -63,6 +75,17 @@ function HomeScreen({route, navigation}) {
       >
         Seja bem-vindo ao chat {name} 
         </Text>
+
+        <TouchableOpacity
+         onPress={() => navigation.navigate('Salas', {userName: name, 
+                                                      userId: new Date().getTime()})}>
+          <Text
+          style={styles.TouchableOpacity}
+          >
+          Ir para o chat
+          </Text>
+          
+        </TouchableOpacity>
     </View>
     )
 
@@ -71,18 +94,149 @@ function HomeScreen({route, navigation}) {
   );
 }
 
-function ChatScreen() {
+function ChatScreen({route, navigation}) {
+      const [rooms, setRooms] = useState([]);
+      const [name, setName] = useState('');
+
+      
+      useFocusEffect(
+        React.useCallback(() => {
+          if (route.params && route.params.userName != undefined) {
+            if (name == "") {
+              alert("Seja bem-vindo ao chat: " + route.params.userName); 
+              setName(route.params.userName);
+              /* console.log('O seu id é' + route.params.userId) */
+            }
+
+          } else {
+               navigation.navigate('Home');
+          }
+        }, [route.params])
+      );
+      
+      useEffect(() => {
+        const unsubscribe = onSnapshot(collection(db, 'rooms'), (snapshot) => {
+          setName(route.params.userName);
+          setRooms(
+            snapshot.docs.map((doc) => ({
+              id: doc.id,
+              data: doc.data()
+            }))
+          );
+        });
+      
+        return () => {
+          unsubscribe();
+        };
+      }, []);
+          
+
   return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Chat!</Text>
+    <View style={styles.container}>
+      <View
+       style={styles.chat}>
+        
+      <Text
+      style={{...styles.Text,
+                 color: 'rgb(52, 119, 235)',
+                fontSize: 17,
+                 margin: 0,}}
+      >BroadCast List {/* {route.params.userName} */}
+      </Text>
+
+      <Text
+      style={{...styles.Text,
+                 color: 'rgb(52, 119, 235)',
+                fontSize: 17,
+                 margin: 0,}}
+      >New room 
+      </Text>
+
+      </View>
+        {
+          rooms.map((val) => {
+            return(
+              <View 
+              key={val.id}
+              style={{...styles.chat,
+                        borderBottomColor: 'rgba(255, 255, 255,0.4)',
+
+              }}
+              >
+                <TouchableOpacity
+                   onPress={() => navigation.navigate('Room', {chatName: val.id})}
+                   
+
+                ><Text
+                style={{...styles.Text,
+                  fontSize: 22,
+                  margin: 0,   
+        }}
+                >
+                 {val.id} 
+                </Text>
+
+                </TouchableOpacity>
+
+                  
+                  <Text
+                  style={{...styles.Text,
+                            fontSize: 12,
+                            margin: 0,   
+                  }}
+                   > 
+                   <Ionicons 
+                    size={18}  
+                    name='ios-information-circle'
+                   />
+                     Disponível 
+                  </Text>
+
+              </View>
+            )
+          })
+        }
+
     </View>
   );
 }
 
+
+const RoomScreen = ({route, navigation}) => {
+      const [messages, setMessages] = useState([]);
+      const [currentmessages, setCurrentMessages] = useState('');
+      const ScrollViewRef = useRef();
+
+      return(
+        <View
+         style={styles.container}>
+          <ScrollView
+          ref={ScrollViewRef}
+          onContentSizeChange={() => ScrollViewRef.current.scrollToEnd({animated: true})}
+          style={{flex: 0.8}}
+          >
+            <Text>Estou na sala individual</Text>
+          </ScrollView>
+        </View>
+      )
+
+}
+
+
 const HomeStack = createNativeStackNavigator();
-
-
+const ChatStack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+
+const ChatStackScreen = () => {
+       return(
+        
+          <ChatStack.Navigator>
+          <ChatStack.Screen name='Room' component={RoomScreen}/>
+
+          </ChatStack.Navigator>
+        
+       )
+}
 
 const MyTheme = {
 
@@ -106,8 +260,9 @@ const MyTheme = {
 export default function App() {
   return (
     <NavigationContainer theme={MyTheme}>
-   <Tab.Navigator
-  screenOptions={({ route }) => ({
+   <Tab.Navigator 
+    screenOptions={({ route }) => ({
+    /* lazy: false, */
     tabBarIcon: ({ focused, color, size }) => {
       let iconName;
 
@@ -133,7 +288,7 @@ export default function App() {
     ],
   })}
 >
-  <Tab.Screen name="Home" component={HomeScreen} />
+  <Tab.Screen name="Home" component={HomeScreen}/>
   <Tab.Screen name="Salas" component={ChatScreen} />
   {/* <Tab.Screen name="Settings" component={SettingsScreen} /> */}
 </Tab.Navigator>
@@ -148,8 +303,7 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center', 
-    alignItems: 'center', 
+    
     backgroundColor: 'rgb(30,30,30)',
   },
 
@@ -163,22 +317,44 @@ const styles = StyleSheet.create({
 
   },
 
+  divInput: {
+    marginLeft: 30,
+  },
+
   TextInput: {
-     width: 370,
+     width: 300,
      height: 40,
      backgroundColor: 'white',
-     padding: 10,
-     borderRadius: 20,
+     paddingLeft: 20,
+     height: 45,
+     borderRadius: 30,
      marginBottom: 10,
      margin: 10,
+
 
   },
 
   Button: {
     paddingHorizontal: 80,
     margin: 10,
-    
-
+  
   },
+
+  TouchableOpacity: {
+    color: 'white',
+    backgroundColor: '#069',
+    padding: 10,
+    textAlign: 'center',
+    borderRadius: 20,
+    marginHorizontal: 90,
+  
+  },
+
+  chat: {
+    borderBottomColor: 'white',
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    padding: 10,
+    justifyContent: 'space-between'},
   
 });
