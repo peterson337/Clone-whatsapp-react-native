@@ -19,11 +19,15 @@ import { Ionicons, AntDesign } from '@expo/vector-icons';
 import {db} from "./Firebase";
 
 import {
-  collection, 
+  collection,
   onSnapshot,
   doc,
-  docs 
-  } from "firebase/firestore";
+  add,
+  addDoc,
+  orderBy,
+  query
+} from "firebase/firestore";
+
 
 function HomeScreen({route, navigation}) {
         const [name, setName] = useState('Nome de teste');
@@ -217,40 +221,62 @@ function ChatScreen({route, navigation}) {
 
 const RoomScreen = ({route, navigation}) => {
       const [messages, setMessages] = useState([]);
-      const [currentmessages, setCurrentMessages] = useState('');
+      const [currentmessages, setCurrentMessages] = useState('Mensagem de teste');
       const [usuario, setUsuario] = useState('');
 
       const ScrollViewRef = useRef();
         
       useEffect(() => {
-        setUsuario(route.params?.autor)
-
+        setUsuario(route.params?.autor);
+      
         const collectionRef = collection(db, 'rooms');
         const docRef = doc(collectionRef, route.params?.chatName);
-        
-        const unsub = onSnapshot(docRef, (snapshot) => {
-          setMessages(snapshot.docs.map(l => {
+        const messagesRef = query (collection(docRef, 'messages'), 
+        orderBy('time', 'asc'));
+
+        const unsub = onSnapshot(messagesRef, (snapshot) => {
+          setMessages(snapshot.docs.map((val) => {
             return {
-              id: l.id,
-              data: l.data()
+              id: val.id,
+              data: val.data()
             };
           }));
         });
-        
 
-//?         O CONCAT SERVE PARA RETORNAR O QUE FOI PASSADO.         
+      
+        return () => {
+          unsub();
+        };
+      }, []);
+      
+      
+         //?         O CONCAT SERVE PARA RETORNAR O QUE FOI PASSADO.         
         /* setMessages(messages => messages.concat({
           data: {
             autor: usuario,
             mensagem: 'Ola, mundo'
           }
         })) */
-        
-      
-      }, [])
+
       
         const sendMessage = () => {
-          alert(usuario +    route.params.id) 
+            let message = {
+              id: route.params.id,
+              autor: route.params.autor,
+              mensagem: currentmessages,
+              time: new Date().getTime()
+            }
+            const collectionRef = collection(db, 'rooms');
+            const docRef = doc(collectionRef, route.params?.chatName);
+            const messagesRef = collection(docRef, 'messages');
+            const unsub = addDoc(messagesRef, message);
+            console.log('Mensagem enviada com sucesso')
+            setCurrentMessages('')
+  
+            return () => {
+              unsub();
+            };
+    
         }
       return(
         <View
@@ -264,9 +290,41 @@ const RoomScreen = ({route, navigation}) => {
           >
               { 
               messages.map((val, index) => {
-                return(
+                if (route.params.id === val.data.id) {
+                  return(
+                    <View
+                    style={{...styles.subContainer,
+                      backgroundColor: 'white'
+                    }}
+                    key={index}
+    
+                    >
+                      <Text
+                      style={{...styles.Text, 
+                        margin: 0,
+                        color: 'gray',
+                        marginHorizontal: 10,
+                          }}
+                      >{val.data.autor}: 
+                           <Text
+                        style={{...styles.Text, 
+                          margin: 0,
+                          color: 'rgb(0,0,0)',
+                          fontWeight: 'bold',
+                          
+                            }}
+                      >{val.data.mensagem}.</Text> 
+                      </Text> 
+  
+                 
+    
+                    </View>
+                  )  
+                }else{
                   <View
-                  style={styles.subContainer}
+                  style={{...styles.subContainer,
+                    
+                  }}
                   key={index}
   
                   >
@@ -274,7 +332,9 @@ const RoomScreen = ({route, navigation}) => {
                     style={{...styles.Text, 
                       margin: 0,
                         }}
-                    >{usuario}:</Text> 
+                    >{val.data.autor}:
+                    </Text> 
+
                     <Text
                       style={{...styles.Text, 
                         margin: 0,
@@ -284,7 +344,8 @@ const RoomScreen = ({route, navigation}) => {
                     >{val.data.mensagem}.</Text> 
   
                   </View>
-                )
+                }
+                
               })
               }
           </ScrollView>
@@ -299,6 +360,7 @@ const RoomScreen = ({route, navigation}) => {
 
           <TextInput 
           onChangeText={(text) =>setCurrentMessages(text)}
+          value={currentmessages}
           style={{...styles.TextInput,
                       width:'90%',
                       height:40,
@@ -424,7 +486,7 @@ const styles = StyleSheet.create({
   },
 
   subContainer: {
-    backgroundColor: 'rgb(20,20,20)',
+    borderBottomColor: 'rgb(20,20,20)',
     borderBottomWidth: 1,
     padding: 10
 
