@@ -20,7 +20,9 @@ import {db} from "./Firebase";
 
 import {
   collection, 
-  onSnapshot
+  onSnapshot,
+  doc,
+  docs 
   } from "firebase/firestore";
 
 function HomeScreen({route, navigation}) {
@@ -219,19 +221,32 @@ const RoomScreen = ({route, navigation}) => {
       const [usuario, setUsuario] = useState('');
 
       const ScrollViewRef = useRef();
-
+        
       useEffect(() => {
         setUsuario(route.params?.autor)
-      for (let i = 0; i < 100; i++) {
-//?             O CONCAT SERVE PARA RETORNAR O QUE FOI PASSADO.         
-        setMessages(messages => messages.concat({
+
+        const collectionRef = collection(db, 'rooms');
+        const docRef = doc(collectionRef, route.params?.chatName);
+        
+        const unsub = onSnapshot(docRef, (snapshot) => {
+          setMessages(snapshot.docs.map(l => {
+            return {
+              id: l.id,
+              data: l.data()
+            };
+          }));
+        });
+        
+
+//?         O CONCAT SERVE PARA RETORNAR O QUE FOI PASSADO.         
+        /* setMessages(messages => messages.concat({
           data: {
             autor: usuario,
             mensagem: 'Ola, mundo'
           }
-        }))
+        })) */
         
-      }
+      
       }, [])
       
         const sendMessage = () => {
