@@ -30,9 +30,17 @@ import {
 
 
 function HomeScreen({route, navigation}) {
-        const [name, setName] = useState('Nome de teste');
+        const [name, setName] = useState('');
         const [definedName, setDefinedName] = useState(false);
         
+        const definirNome = () => {
+          if (name === '') {
+            alert("Por favor  escreva um nome para usar o app.")
+            return
+          }
+          setDefinedName(true)
+        }
+
   return (
     <View style={{...styles.container,
                     justifyContent: 'center', 
@@ -57,7 +65,6 @@ function HomeScreen({route, navigation}) {
          <TextInput
         onChangeText={(text) =>setName(text)}
         value={name}
-  
         style={styles.TextInput}
         placeholder={'Escreva o seu nome'}
         ></TextInput>
@@ -66,7 +73,7 @@ function HomeScreen({route, navigation}) {
 
      
         <TouchableOpacity
-        onPress={() => setDefinedName(true)}>
+        onPress={definirNome}>
           <Text
           style={styles.TouchableOpacity}
           >
@@ -120,7 +127,6 @@ function ChatScreen({route, navigation}) {
             alert("Seja bem-vindo ao chat: " + route.params.userName);
           }
           setName(route.params.userName);
-          // console.log('O seu id é' + route.params.userId)
         } else {
           navigation.navigate('Home');
         }
@@ -137,7 +143,6 @@ function ChatScreen({route, navigation}) {
             }))
           );
         });
-      
         return () => {
           unsubscribe();
         };
@@ -221,7 +226,7 @@ function ChatScreen({route, navigation}) {
 
 const RoomScreen = ({route, navigation}) => {
       const [messages, setMessages] = useState([]);
-      const [currentmessages, setCurrentMessages] = useState('Mensagem de teste');
+      const [currentmessages, setCurrentMessages] = useState('');
       const [usuario, setUsuario] = useState('');
 
       const ScrollViewRef = useRef();
@@ -232,7 +237,7 @@ const RoomScreen = ({route, navigation}) => {
         const collectionRef = collection(db, 'rooms');
         const docRef = doc(collectionRef, route.params?.chatName);
         const messagesRef = query (collection(docRef, 'messages'), 
-        orderBy('time', 'asc'));
+        orderBy('time'));
 
         const unsub = onSnapshot(messagesRef, (snapshot) => {
           setMessages(snapshot.docs.map((val) => {
@@ -241,8 +246,8 @@ const RoomScreen = ({route, navigation}) => {
               data: val.data()
             };
           }));
-        });
 
+        });
       
         return () => {
           unsub();
@@ -270,14 +275,14 @@ const RoomScreen = ({route, navigation}) => {
             const docRef = doc(collectionRef, route.params?.chatName);
             const messagesRef = collection(docRef, 'messages');
             const unsub = addDoc(messagesRef, message);
-            console.log('Mensagem enviada com sucesso')
             setCurrentMessages('')
   
             return () => {
               unsub();
             };
-    
         }
+
+
       return(
         <View
          style={styles.container}>
@@ -305,7 +310,7 @@ const RoomScreen = ({route, navigation}) => {
                         color: 'gray',
                         marginHorizontal: 10,
                           }}
-                      >{val.data.autor}: 
+                      >{val.data.autor}:{' '} 
                            <Text
                         style={{...styles.Text, 
                           margin: 0,
@@ -313,7 +318,7 @@ const RoomScreen = ({route, navigation}) => {
                           fontWeight: 'bold',
                           
                             }}
-                      >{val.data.mensagem}.</Text> 
+                      >{val.data.mensagem}</Text> 
                       </Text> 
   
                  
@@ -321,6 +326,7 @@ const RoomScreen = ({route, navigation}) => {
                     </View>
                   )  
                 }else{
+                 return(
                   <View
                   style={{...styles.subContainer,
                     
@@ -332,18 +338,22 @@ const RoomScreen = ({route, navigation}) => {
                     style={{...styles.Text, 
                       margin: 0,
                         }}
-                    >{val.data.autor}:
-                    </Text> 
+                    >{val.data.autor}:{' '}
 
-                    <Text
+                      <Text
                       style={{...styles.Text, 
                         margin: 0,
                         color: 'rgb(210,210,210)',
                         fontWeight: 'bold'
                           }}
-                    >{val.data.mensagem}.</Text> 
+                    >{val.data.mensagem}
+                    </Text> 
+                    </Text> 
+
+                    
   
                   </View>
+                 )
                 }
                 
               })
@@ -370,6 +380,7 @@ const RoomScreen = ({route, navigation}) => {
                       marginBottom: 0,
 
                      }}
+            placeholder='Escreva alguma mensagem'
           ></TextInput>
 
           <TouchableOpacity
